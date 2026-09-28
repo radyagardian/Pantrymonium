@@ -11,6 +11,7 @@ import {
   FiCoffee,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
+import { LuCookingPot } from "react-icons/lu";
 
 export default function Sidebar() {
   const [open, setOpen] = useState(false);
@@ -105,7 +106,8 @@ const Option = ({
 const TitleSection = ({ open }: { open: boolean }) => {
   return (
     <div className="mb-3 border-b-2 border-[#C29D93] pb-3">
-      <div className="flex cursor-pointer items-center justify-between rounded-xl transition-colors hover:bg-[#F9D0DE] p-1">
+      {/* Wrapped the header in a Link to route to the landing page */}
+      <Link href="/welcome" className="flex cursor-pointer items-center justify-between rounded-xl transition-colors hover:bg-[#F9D0DE] p-1">
         <div className="flex items-center gap-2">
           <Logo />
           {open && (
@@ -125,7 +127,7 @@ const TitleSection = ({ open }: { open: boolean }) => {
           )}
         </div>
         {open && <FiChevronDown className="mr-2 text-[#AF8B87]" />}
-      </div>
+      </Link>
     </div>
   );
 };
@@ -136,9 +138,8 @@ const Logo = () => {
       layout
       className="grid size-10 shrink-0 place-content-center rounded-lg bg-[#FFBFCC] text-[#733D26]"
     >
-      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-      </svg>
+      {/* Replaced the generic SVG with the LuCookingPot icon */}
+      <LuCookingPot size={24} />
     </motion.div>
   );
 };
