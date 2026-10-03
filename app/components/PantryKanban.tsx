@@ -4,28 +4,28 @@ import React, { useState, useRef, useEffect } from "react";
 import { FiPlus, FiTrash, FiMoreHorizontal } from "react-icons/fi";
 import { FaFire } from "react-icons/fa";
 import { motion } from "framer-motion";
+// Import your Next.js Server Actions
+import { 
+  addCategory, 
+  renameCategory, 
+  deleteCategory, 
+  addItem, 
+  moveItem, 
+  deleteItem 
+} from "../actions/pantry";
 
-export default function PantryKanban() {
+export default function PantryKanban({ initialColumns, initialCards }: any) {
   return (
-    <div className="w-full text-[#733D26]">
-      <Board />
+    <div className="w-full text-[#733D26] h-full flex-1">
+      <Board initialColumns={initialColumns} initialCards={initialCards} />
     </div>
   );
 }
 
-const Board = () => {
-  const [columns, setColumns] = useState([
-    { id: "fridge", title: "Fridge" },
-    { id: "freezer", title: "Freezer" },
-    { id: "dry-goods", title: "Dry Goods" },
-  ]);
-  const [cards, setCards] = useState([
-    { title: "Chicken Breast", id: "1", column: "fridge" },
-    { title: "Heavy Cream", id: "2", column: "fridge" },
-    { title: "Frozen Peas", id: "3", column: "freezer" },
-    { title: "Garlic", id: "4", column: "dry-goods" },
-    { title: "Pasta", id: "5", column: "dry-goods" },
-  ]);
+const Board = ({ initialColumns, initialCards }: any) => {
+  // Initialize state with live Supabase data instead of hardcoded mocks
+  const [columns, setColumns] = useState(initialColumns || []);
+  const [cards, setCards] = useState(initialCards || []);
   const [addingCol, setAddingCol] = useState(false);
   const [newColTitle, setNewColTitle] = useState("");
 
@@ -34,9 +34,13 @@ const Board = () => {
     if (!newColTitle.trim()) return;
     
     const newId = newColTitle.trim().toLowerCase().replace(/\s+/g, "-");
+    const title = newColTitle.trim();
     
-    if (!columns.some(col => col.id === newId)) {
-      setColumns([...columns, { id: newId, title: newColTitle.trim() }]);
+    if (!columns.some((col: any) => col.id === newId)) {
+      // Optimistic UI update
+      setColumns([...columns, { id: newId, title }]);
+      // Background database update
+      addCategory(newId, title);
     }
     
     setNewColTitle("");
@@ -46,10 +50,10 @@ const Board = () => {
   const handleColumnDrop = (draggedColId: string, targetColId: string) => {
     if (draggedColId === targetColId) return;
     
-    setColumns((prev) => {
+    setColumns((prev: any) => {
       const newCols = [...prev];
-      const draggedIdx = newCols.findIndex(c => c.id === draggedColId);
-      const targetIdx = newCols.findIndex(c => c.id === targetColId);
+      const draggedIdx = newCols.findIndex((c: any) => c.id === draggedColId);
+      const targetIdx = newCols.findIndex((c: any) => c.id === targetColId);
       
       const [draggedCol] = newCols.splice(draggedIdx, 1);
       newCols.splice(targetIdx, 0, draggedCol);
@@ -60,14 +64,14 @@ const Board = () => {
 
   return (
     <div className="flex h-full w-full gap-4 overflow-x-auto pb-12 pt-4 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      {columns.map((col) => (
+      {columns.map((col: any) => (
         <Column 
           key={col.id} 
           title={col.title} 
           column={col.id} 
           cards={cards} 
           setCards={setCards}
-          setColumns={setColumns} // Passed down to handle renaming/deleting
+          setColumns={setColumns}
           handleColumnDrop={handleColumnDrop}
         />
       ))}
@@ -117,14 +121,11 @@ const Board = () => {
 const Column = ({ title, cards, column, setCards, setColumns, handleColumnDrop }: any) => {
   const [active, setActive] = useState(false);
   const [colDragOver, setColDragOver] = useState(false);
-  
-  // New States for Menu and Renaming
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(title);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close the menu if you click outside of it
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -136,23 +137,30 @@ const Column = ({ title, cards, column, setCards, setColumns, handleColumnDrop }
   }, []);
 
   const handleDeleteCategory = () => {
+    // Optimistic UI update
     setColumns((prev: any) => prev.filter((c: any) => c.id !== column));
     setCards((prev: any) => prev.filter((c: any) => c.column !== column));
     setShowMenu(false);
+    // Background database update
+    deleteCategory(column);
   };
 
   const handleRenameSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!editTitle.trim()) {
-      setEditTitle(title); // Revert if left blank
+      setEditTitle(title); 
       setIsEditing(false);
       return;
     }
     
+    const newTitle = editTitle.trim();
+    // Optimistic UI update
     setColumns((prev: any) => 
-      prev.map((c: any) => c.id === column ? { ...c, title: editTitle.trim() } : c)
+      prev.map((c: any) => c.id === column ? { ...c, title: newTitle } : c)
     );
     setIsEditing(false);
+    // Background database update
+    renameCategory(column, newTitle);
   };
 
   const handleDragStart = (e: any, card: any) => {
@@ -174,6 +182,8 @@ const Column = ({ title, cards, column, setCards, setColumns, handleColumnDrop }
       let copy = [...cards];
       let cardToTransfer = copy.find((c: any) => c.id === cardId);
       if (!cardToTransfer) return;
+      
+      const previousColumn = cardToTransfer.column;
       cardToTransfer = { ...cardToTransfer, column };
 
       copy = copy.filter((c: any) => c.id !== cardId);
@@ -186,7 +196,14 @@ const Column = ({ title, cards, column, setCards, setColumns, handleColumnDrop }
         if (insertAtIndex === undefined) return;
         copy.splice(insertAtIndex, 0, cardToTransfer);
       }
+      
+      // Optimistic UI update
       setCards(copy);
+      
+      // Background database update (only update DB if the column actually changed)
+      if (previousColumn !== column) {
+        moveItem(cardId, column);
+      }
     }
   };
 
@@ -281,7 +298,6 @@ const Column = ({ title, cards, column, setCards, setColumns, handleColumnDrop }
       />
 
       <div 
-        // We disable dragging while editing the title so you can highlight text without grabbing the column
         draggable={!isEditing}
         onDragStart={(e) => {
           e.dataTransfer.setData("colid", column);
@@ -311,7 +327,6 @@ const Column = ({ title, cards, column, setCards, setColumns, handleColumnDrop }
             )}
           </div>
           
-        {/* Options Menu */}
           <div className="relative" ref={menuRef}>
             <button 
               onClick={() => setShowMenu(!showMenu)}
@@ -410,9 +425,11 @@ const BurnBarrel = ({ setCards, setColumns }: any) => {
 
     if (cardId) {
       setCards((pv: any) => pv.filter((c: any) => c.id !== cardId));
+      deleteItem(cardId); // Database update
     } else if (colId) {
       setColumns((pv: any) => pv.filter((c: any) => c.id !== colId));
       setCards((pv: any) => pv.filter((c: any) => c.column !== colId));
+      deleteCategory(colId); // Database update
     }
     
     setActive(false);
@@ -438,17 +455,21 @@ const AddCard = ({ column, setCards }: any) => {
   const [text, setText] = useState("");
   const [adding, setAdding] = useState(false);
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!text.trim().length) return;
 
-    const newCard = {
-      column,
-      title: text.trim(),
-      id: Math.random().toString(),
-    };
-
-    setCards((pv: any) => [...pv, newCard]);
+    const title = text.trim();
+    
+    // We await this specific action so we get the real generated UUID back from Postgres
+    // This ensures that if the user drags it immediately after creating it, the drag system has the correct ID.
+    const addedItem = await addItem(title, column);
+    
+    if (addedItem) {
+      setCards((pv: any) => [...pv, { id: addedItem.id, title: addedItem.title, column: addedItem.category_id }]);
+    }
+    
+    setText("");
     setAdding(false);
   };
 

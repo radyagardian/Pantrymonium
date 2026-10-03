@@ -1,19 +1,19 @@
-// app/pantry/page.tsx
-"use client";
-
 import PantryKanban from "../components/PantryKanban";
+import { fetchPantryBoard } from "../actions/pantry";
 
-export default function PantryPage() {
+export default async function PantryPage() {
+  // Fetch data directly from Supabase before the page loads
+  const boardData = await fetchPantryBoard();
+
   return (
-    <main className="p-8 font-[family-name:var(--font-geist-sans)] text-[#733D26]">
-      <header className="mb-10">
-        <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-[#733D26]">My Pantry</h1>
-        <p className="text-[#AF7F73] text-lg font-medium">Organize your ingredients into categories.</p>
-      </header>
-
-      <div className="w-full">
-        <PantryKanban />
-      </div>
+    <main className="flex h-screen w-full flex-col bg-[#FCF8F5] p-8">
+      <h1 className="mb-8 text-4xl font-extrabold text-[#733D26]">My Pantry</h1>
+      
+      {/* Pass the live database rows into the client component */}
+      <PantryKanban 
+        initialColumns={boardData.categories} 
+        initialCards={boardData.items} 
+      />
     </main>
   );
 }
