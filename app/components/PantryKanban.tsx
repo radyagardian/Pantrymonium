@@ -16,7 +16,7 @@ import {
 
 export default function PantryKanban({ initialColumns, initialCards }: any) {
   return (
-    <div className="w-full text-[#733D26] h-full flex-1">
+    <div className="w-full text-[#733D26] font-[family-name:var(--font-geist-sans)] h-full flex-1">
       <Board initialColumns={initialColumns} initialCards={initialCards} />
     </div>
   );
@@ -63,7 +63,7 @@ const Board = ({ initialColumns, initialCards }: any) => {
   };
 
   return (
-    <div className="flex h-full w-full gap-4 overflow-x-auto pb-12 pt-4 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    <div className="flex h-full w-full gap-4 overflow-x-auto pb-12 pt-4 snap-x">
       {columns.map((col: any) => (
         <Column 
           key={col.id} 

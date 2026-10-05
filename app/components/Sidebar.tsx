@@ -45,7 +45,7 @@ export default function Sidebar() {
         <Option
           Icon={FiCalendar}
           title="Meal Plan"
-          href="/"
+          href="/planner"
           selected={pathname}
           open={open}
         />

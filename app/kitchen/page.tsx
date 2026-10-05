@@ -1,6 +1,7 @@
 import React from "react";
 import { getCategorizedRecipes } from "../actions/recipes";
 import Link from "next/link";
+import SaveButton from "../components/SaveButton";
 
 const RecipeCard = ({ 
   id,
@@ -33,7 +34,8 @@ const RecipeCard = ({
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         
-        <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 border-2 text-[10px] font-black uppercase tracking-wider py-1 px-4 rounded-full shadow-sm z-10 whitespace-nowrap ${tagColor}`}>
+        {/* Changed positioning from -bottom-3 to top-3 right-3 */}
+        <div className={`absolute top-3 right-3 border-2 text-[10px] font-black uppercase tracking-wider py-1 px-3 rounded-full shadow-md z-10 whitespace-nowrap ${tagColor}`}>
           {tag}
         </div>
       </div>
@@ -48,18 +50,12 @@ const RecipeCard = ({
         </div>
 
         <div className="mt-auto flex flex-col gap-3">
-          {/* Converted from <button> to <div> to prevent breaking the Link wrapper */}
-          <div className="w-full py-2.5 border-2 border-brand-text rounded-xl font-bold text-brand-text group-hover:bg-brand-surface group-hover:border-brand-accent transition-colors flex items-center justify-center gap-2">
-            Save Recipe
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </div>
+          <SaveButton recipeId={id} title={title} image={image} />
         </div>
       </div>
     </Link>
   );
-}; // <-- This closing bracket and semicolon were missing
+};
 
 export default async function KitchenPage() {
   const { heavyMeals, lightBites, desserts } = await getCategorizedRecipes();
@@ -68,8 +64,8 @@ export default async function KitchenPage() {
   return (
     <main className="p-8 pb-20 font-[family-name:var(--font-geist-sans)] max-w-7xl mx-auto bg-[#FCF8F5] min-h-screen">
       <header className="mb-12">
-        <h1 className="text-4xl font-extrabold tracking-tight mb-2 text-brand-text">Kitchen</h1>
-        <p className="text-brand-text/80 text-lg font-medium">Find your next meal based on your pantry.</p>
+        <h1 className="text-4xl text-[#733D26] font-extrabold tracking-tight mb-2 text-brand-text">Kitchen</h1>
+        <p className="text-brand-text/80 text-[#733D26] text-lg font-medium">Find your next meal based on your pantry.</p>
       </header>
 
       {hasNoRecipes && (
@@ -81,7 +77,7 @@ export default async function KitchenPage() {
 
       {heavyMeals.length > 0 && (
         <section className="mb-12 relative">
-          <h2 className="text-2xl font-extrabold text-brand-text mb-6">Heavy Meals</h2>
+          <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Heavy Meals</h2>
           {/* Scroll-hiding classes removed. pb-6 allows the scrollbar to sit cleanly below the cards */}
           <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory">
             {heavyMeals.map((recipe: any) => (
@@ -93,7 +89,7 @@ export default async function KitchenPage() {
 
       {lightBites.length > 0 && (
         <section className="mb-12 relative">
-          <h2 className="text-2xl font-extrabold text-brand-text mb-6">Light Bites</h2>
+          <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Light Bites</h2>
           <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory">
             {lightBites.map((recipe: any) => (
               <RecipeCard id={recipe.id} key={recipe.id} title={recipe.title} image={recipe.image} usedCount={recipe.usedIngredientCount} missingCount={recipe.missedIngredientCount} />
@@ -104,7 +100,7 @@ export default async function KitchenPage() {
 
       {desserts.length > 0 && (
         <section className="mb-12 relative">
-          <h2 className="text-2xl font-extrabold text-brand-text mb-6">Desserts</h2>
+          <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Desserts</h2>
           <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory">
             {desserts.map((recipe: any) => (
               <RecipeCard id={recipe.id} key={recipe.id} title={recipe.title} image={recipe.image} usedCount={recipe.usedIngredientCount} missingCount={recipe.missedIngredientCount} />

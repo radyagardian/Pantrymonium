@@ -1,14 +1,29 @@
-
 import React from "react";
 import Link from "next/link";
 import { getRecipeDetails } from "../../actions/recipes";
+import { supabase } from "../../../lib/supabase"; // Import Supabase to check your live pantry
 
 export default async function RecipePage({ params }: { params: Promise<{ id: string }> }) {
-  // 1. Await the params before extracting the ID
   const resolvedParams = await params;
   
-  // 2. Pass the resolved ID to your server action
+  // 1. Fetch the recipe details from Spoonacular
   const recipe = await getRecipeDetails(resolvedParams.id);
+
+  // 2. Fetch your live pantry items from Supabase
+  const { data: pantryData } = await supabase.from("pantry_items").select("title");
+  
+  // Clean up the pantry strings for easier matching (lowercase and trimmed)
+  const pantryItems = (pantryData || []).map((item: any) => item.title.toLowerCase().trim());
+
+  // Helper function: Checks if the recipe ingredient name matches anything in your pantry
+  const checkInPantry = (ingredientName: string) => {
+    if (!ingredientName) return false;
+    const name = ingredientName.toLowerCase();
+    // This allows "Milk" in your pantry to match "1 cup of whole milk" in the recipe
+    return pantryItems.some((pantryItem: string) => 
+      name.includes(pantryItem) || pantryItem.includes(name)
+    );
+  };
 
   if (!recipe) {
     return (
@@ -17,8 +32,6 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
       </main>
     );
   }
-
-  // ... (Keep the rest of your return statement exactly the same)
 
   return (
     <main className="min-h-screen bg-[#FCF8F5] p-8 pb-20 font-[family-name:var(--font-geist-sans)]">
@@ -31,7 +44,6 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
         </Link>
 
         <div className="overflow-hidden rounded-3xl border-2 border-[#F8B0C8] bg-white shadow-sm">
-          {/* Header Image */}
           <div className="relative h-72 w-full bg-[#F9D0DE] sm:h-96">
             <img 
               src={recipe.image} 
@@ -58,13 +70,35 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
               {/* Ingredients Sidebar */}
               <div className="md:col-span-1">
                 <h2 className="mb-4 text-2xl font-extrabold text-[#733D26]">Ingredients</h2>
-                <ul className="space-y-3">
-                  {recipe.extendedIngredients?.map((ing: any) => (
-                    <li key={ing.id} className="flex items-start gap-2 text-[#733D26]">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F8B0C8]" />
-                      <span className="font-medium">{ing.original}</span>
-                    </li>
-                  ))}
+                <ul className="space-y-4">
+                  {recipe.extendedIngredients?.map((ing: any) => {
+                    // Check if we have this specific ingredient
+                    const hasIt = checkInPantry(ing.name);
+                    
+                    return (
+                      <li key={ing.id} className={`flex items-start gap-3 ${hasIt ? 'text-[#733D26]' : 'text-[#AF8B87]'}`}>
+                        {hasIt ? (
+                          // Green Checkmark for owned items
+                          <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          // Red X for missing items
+                          <svg className="mt-0.5 h-5 w-5 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        )}
+                        <span className="font-medium">
+                          {ing.original}
+                          {!hasIt && (
+                            <span className="ml-2 block text-[10px] font-black uppercase tracking-wider text-red-400 md:inline md:ml-2">
+                              (Missing)
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
 
