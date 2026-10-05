@@ -2,6 +2,7 @@ import React from "react";
 import { getCategorizedRecipes } from "../actions/recipes";
 import Link from "next/link";
 import SaveButton from "../components/SaveButton";
+import KitchenControls from "../components/KitchenControls";
 
 const RecipeCard = ({ 
   id,
@@ -57,16 +58,19 @@ const RecipeCard = ({
   );
 };
 
-export default async function KitchenPage() {
-  const { heavyMeals, lightBites, desserts } = await getCategorizedRecipes();
+export default async function KitchenPage({ searchParams }: { searchParams: Promise<{ q?: string, r?: string }> }) {
+ 
+  const resolvedParams = await searchParams;
+  const { heavyMeals, lightBites, desserts } = await getCategorizedRecipes(resolvedParams.q, resolvedParams.r);
   const hasNoRecipes = heavyMeals.length === 0 && lightBites.length === 0 && desserts.length === 0;
 
   return (
-    <main className="p-8 pb-20 font-[family-name:var(--font-geist-sans)] max-w-7xl mx-auto bg-[#FCF8F5] min-h-screen">
-      <header className="mb-12">
+     <main className="min-h-screen w-full bg-[#FCF8F5] p-8 pb-20 font-[family-name:var(--font-geist-sans)]">      <header className="mb-12">
         <h1 className="text-4xl text-[#733D26] font-extrabold tracking-tight mb-2 text-brand-text">Kitchen</h1>
         <p className="text-brand-text/80 text-[#733D26] text-lg font-medium">Find your next meal based on your pantry.</p>
       </header>
+
+      <KitchenControls />
 
       {hasNoRecipes && (
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C29D93] bg-[#FFBFCC]/20 py-20 text-center">

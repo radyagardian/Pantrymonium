@@ -1,62 +1,70 @@
 "use server";
 import { supabase } from "../../lib/supabase";
 
-export async function getCategorizedRecipes() {
+export async function getCategorizedRecipes(searchQuery?: string, refreshKey?: string) {
+  // 1. Fetch pantry items
   const { data: items, error } = await supabase.from("pantry_items").select("title");
-
-  if (error || !items || items.length === 0) {
-    return { heavyMeals: [], lightBites: [], desserts: [] };
+  
+  let ingredientsString = "";
+  if (!error && items && items.length > 0) {
+    ingredientsString = items
+      .map((item) => item.title.toLowerCase().trim().replace(/\s+/g, "+"))
+      .join(",+");
   }
 
-  // Format ingredients for the Spoonacular API
-  const ingredientsString = items
-    .map((item) => item.title.toLowerCase().trim().replace(/\s+/g, "+"))
-    .join(",+");
-
   const apiKey = process.env.SPOONACULAR_API_KEY;
+  
+  // 2. Build the complexSearch URL
+  // addRecipeInformation gets the dishTypes, fillIngredients gets the missing/used counts
+  let url = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${apiKey}&addRecipeInformation=true&fillIngredients=true&number=30`;
+
+  // Filter by pantry ingredients if available
+  if (ingredientsString) {
+    url += `&includeIngredients=${ingredientsString}&sort=max-used-ingredients`;
+  }
+
+  // Add the search term if the user typed one
+  if (searchQuery) {
+    url += `&query=${encodeURIComponent(searchQuery)}`;
+  }
+
+  // Add a random offset if the user clicked Refresh Ideas
+  if (refreshKey) {
+    const randomOffset = Math.floor(Math.random() * 40);
+    url += `&offset=${randomOffset}`;
+  }
 
   try {
-    // 1. Fetch top 20 recipes based on the pantry ingredients
-    const findRes = await fetch(
-      `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${ingredientsString}&number=20&ranking=2&apiKey=${apiKey}`,
-      { next: { revalidate: 3600 } }
-    );
+    // 3. Fetch from Spoonacular
+    // If searching or refreshing, bypass the cache completely to ensure new results
+    const fetchOptions: RequestInit = (searchQuery || refreshKey) 
+      ? { cache: "no-store" } 
+      : { next: { revalidate: 3600 } };
+
+    const res = await fetch(url, fetchOptions);
+    if (!res.ok) throw new Error("Failed to fetch recipes");
     
-    if (!findRes.ok) throw new Error("Failed to fetch recipes");
-    const recipes = await findRes.json();
-    
-    if (recipes.length === 0) {
+    const data = await res.json();
+    const fullData = data.results || [];
+
+    if (fullData.length === 0) {
       return { heavyMeals: [], lightBites: [], desserts: [] };
     }
 
-    // 2. Fetch bulk information for these specific recipes to get their "dishTypes"
-    const recipeIds = recipes.map((r: any) => r.id).join(",");
-    const infoRes = await fetch(
-      `https://api.spoonacular.com/recipes/informationBulk?ids=${recipeIds}&apiKey=${apiKey}`,
-      { next: { revalidate: 3600 } }
-    );
-    const detailedRecipes = await infoRes.json();
-
-    // 3. Merge the missing/used ingredient data with the dish types
-    const fullData = recipes.map((recipe: any) => {
-      const details = detailedRecipes.find((d: any) => d.id === recipe.id);
-      return { ...recipe, dishTypes: details?.dishTypes || [] };
-    });
-
-    // 4. Categorize into the new buckets
+    // 4. Categorize into buckets
     const heavyMeals = fullData.filter((r: any) => 
-      r.dishTypes.includes("main course") || r.dishTypes.includes("dinner")
+      r.dishTypes?.includes("main course") || r.dishTypes?.includes("dinner")
     );
     
     const desserts = fullData.filter((r: any) => 
-      r.dishTypes.includes("dessert") || r.dishTypes.includes("sweet")
+      r.dishTypes?.includes("dessert") || r.dishTypes?.includes("sweet")
     );
     
     const lightBites = fullData.filter((r: any) =>
-      r.dishTypes.includes("snack") ||
-      r.dishTypes.includes("appetizer") ||
-      r.dishTypes.includes("side dish") ||
-      (!r.dishTypes.includes("main course") && !r.dishTypes.includes("dessert")) // Fallback for uncategorized
+      r.dishTypes?.includes("snack") ||
+      r.dishTypes?.includes("appetizer") ||
+      r.dishTypes?.includes("side dish") ||
+      (!r.dishTypes?.includes("main course") && !r.dishTypes?.includes("dessert"))
     );
 
     return {
@@ -68,8 +76,6 @@ export async function getCategorizedRecipes() {
     console.error("Recipe fetch error:", err);
     return { heavyMeals: [], lightBites: [], desserts: [] };
   }
-
-  
 }
 
 export async function getRecipeDetails(id: string) {
