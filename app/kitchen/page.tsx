@@ -59,58 +59,112 @@ const RecipeCard = ({
 };
 
 export default async function KitchenPage({ searchParams }: { searchParams: Promise<{ q?: string, r?: string }> }) {
- 
   const resolvedParams = await searchParams;
-  const { heavyMeals, lightBites, desserts } = await getCategorizedRecipes(resolvedParams.q, resolvedParams.r);
-  const hasNoRecipes = heavyMeals.length === 0 && lightBites.length === 0 && desserts.length === 0;
+  const isSearching = !!resolvedParams.q;
+  
+  // Destructure searchResults alongside the categories
+  const { heavyMeals, lightBites, desserts, searchResults } = await getCategorizedRecipes(resolvedParams.q, resolvedParams.r);
+  
+  // Only show the empty pantry warning if we aren't actively searching
+  const hasNoRecipes = !isSearching && heavyMeals.length === 0 && lightBites.length === 0 && desserts.length === 0;
 
   return (
-     <main className="min-h-screen w-full bg-[#FCF8F5] p-8 pb-20 font-[family-name:var(--font-geist-sans)]">      <header className="mb-12">
+    <main className="min-h-screen w-full bg-[#FCF8F5] p-8 pb-20 font-[family-name:var(--font-geist-sans)]">
+      <header className="mb-12">
         <h1 className="text-4xl text-[#733D26] font-extrabold tracking-tight mb-2 text-brand-text">Kitchen</h1>
         <p className="text-brand-text/80 text-[#733D26] text-lg font-medium">Find your next meal based on your pantry.</p>
       </header>
 
       <KitchenControls />
 
-      {hasNoRecipes && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C29D93] bg-[#FFBFCC]/20 py-20 text-center">
-          <p className="text-xl font-bold text-[#AF8B87]">We need more ingredients!</p>
-          <p className="mt-2 font-medium text-[#733D26]">Add items to your pantry to discover recipes.</p>
+      {isSearching ? (
+        // Grid View for active searches
+        <div className="mt-8">
+          <h2 className="text-2xl font-extrabold text-[#733D26] mb-6">Search Results for "{resolvedParams.q}"</h2>
+          {searchResults && searchResults.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+              {searchResults.map((recipe: any) => (
+                <div key={recipe.id} className="flex justify-center">
+                  <RecipeCard 
+                    id={recipe.id}
+                    title={recipe.title} 
+                    image={recipe.image}
+                    missingCount={recipe.missedIngredientCount || 0}
+                    usedCount={recipe.usedIngredientCount || 0}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C29D93] bg-[#FFBFCC]/20 py-20 text-center">
+              <p className="text-xl font-bold text-[#AF8B87]">No recipes found for "{resolvedParams.q}".</p>
+            </div>
+          )}
         </div>
-      )}
+      ) : (
+        // Standard Categorized Rows View when NOT searching
+        <>
+          {hasNoRecipes && (
+            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#C29D93] bg-[#FFBFCC]/20 py-20 text-center">
+              <p className="text-xl font-bold text-[#AF8B87]">We need more ingredients!</p>
+              <p className="mt-2 font-medium text-[#733D26]">Add items to your pantry to discover recipes.</p>
+            </div>
+          )}
 
-      {heavyMeals.length > 0 && (
-        <section className="mb-12 relative">
-          <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Heavy Meals</h2>
-          {/* Scroll-hiding classes removed. pb-6 allows the scrollbar to sit cleanly below the cards */}
-          <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory">
-            {heavyMeals.map((recipe: any) => (
-              <RecipeCard id={recipe.id} key={recipe.id} title={recipe.title} image={recipe.image} usedCount={recipe.usedIngredientCount} missingCount={recipe.missedIngredientCount} />
-            ))}
-          </div>
-        </section>
-      )}
+          {heavyMeals.length > 0 && (
+            <section className="mb-12 relative">
+              <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Heavy Meals</h2>
+              <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar">
+                {heavyMeals.map((recipe: any) => (
+                  <RecipeCard 
+                    id={recipe.id} 
+                    key={recipe.id} 
+                    title={recipe.title} 
+                    image={recipe.image} 
+                    usedCount={recipe.usedIngredientCount || 0} 
+                    missingCount={recipe.missedIngredientCount || 0} 
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-      {lightBites.length > 0 && (
-        <section className="mb-12 relative">
-          <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Light Bites</h2>
-          <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory">
-            {lightBites.map((recipe: any) => (
-              <RecipeCard id={recipe.id} key={recipe.id} title={recipe.title} image={recipe.image} usedCount={recipe.usedIngredientCount} missingCount={recipe.missedIngredientCount} />
-            ))}
-          </div>
-        </section>
-      )}
+          {lightBites.length > 0 && (
+            <section className="mb-12 relative">
+              <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Light Bites</h2>
+              <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar">
+                {lightBites.map((recipe: any) => (
+                  <RecipeCard 
+                    id={recipe.id} 
+                    key={recipe.id} 
+                    title={recipe.title} 
+                    image={recipe.image} 
+                    usedCount={recipe.usedIngredientCount || 0} 
+                    missingCount={recipe.missedIngredientCount || 0} 
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-      {desserts.length > 0 && (
-        <section className="mb-12 relative">
-          <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Desserts</h2>
-          <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory">
-            {desserts.map((recipe: any) => (
-              <RecipeCard id={recipe.id} key={recipe.id} title={recipe.title} image={recipe.image} usedCount={recipe.usedIngredientCount} missingCount={recipe.missedIngredientCount} />
-            ))}
-          </div>
-        </section>
+          {desserts.length > 0 && (
+            <section className="mb-12 relative">
+              <h2 className="text-2xl text-[#733D26] font-extrabold text-brand-text mb-6">Desserts</h2>
+              <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar">
+                {desserts.map((recipe: any) => (
+                  <RecipeCard 
+                    id={recipe.id} 
+                    key={recipe.id} 
+                    title={recipe.title} 
+                    image={recipe.image} 
+                    usedCount={recipe.usedIngredientCount || 0} 
+                    missingCount={recipe.missedIngredientCount || 0} 
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </main>
   );

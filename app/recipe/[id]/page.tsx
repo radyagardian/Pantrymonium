@@ -71,12 +71,12 @@ export default async function RecipePage({ params }: { params: Promise<{ id: str
               <div className="md:col-span-1">
                 <h2 className="mb-4 text-2xl font-extrabold text-[#733D26]">Ingredients</h2>
                 <ul className="space-y-4">
-                  {recipe.extendedIngredients?.map((ing: any) => {
+                  {recipe.extendedIngredients?.map((ing: any, index: number) => {
                     // Check if we have this specific ingredient
                     const hasIt = checkInPantry(ing.name);
                     
                     return (
-                      <li key={ing.id} className={`flex items-start gap-3 ${hasIt ? 'text-[#733D26]' : 'text-[#AF8B87]'}`}>
+                      <li key={`${ing.id}-${index}`} className={`flex items-start gap-3 ${hasIt ? 'text-[#733D26]' : 'text-gray-500'}`}>
                         {hasIt ? (
                           // Green Checkmark for owned items
                           <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
